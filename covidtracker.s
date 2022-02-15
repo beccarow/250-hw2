@@ -1,191 +1,779 @@
+
+.data 
+
+patientprompt: .asciiz " Enter a patient name:"
+infectorprompt: .asciiz " Enter the infecor name:"
+respoint: .asciiz "res line \n"
+string: .asciiz "%s"
+space: .asciiz " "
+newline: .asciiz "\n"
+empty: .asciiz "File is empty"
+done1: .asciiz "DONE\n"
+done2: .asciiz "DONE"
+done3: .asciiz "DON"
+buffer: .space 31
+buffer2: .space 31
+
 .text
 .align 2
-
 main:
-    subu $sp, $sp, 4
-    sw $ra, 0($sp)
+        addiu   $sp,$sp,-208
+        sw      $31,204($sp)
+        sw      $fp,200($sp)
+        move    $fp,$sp
+        sw      $4,208($fp)
+        sw      $5,212($fp)
+        li      $v0, 4 
+        la      $a0, patientprompt
+        syscall
+        nop
 
-    li $a0, 38 #allocate space for ROOT
-    li $v0, 9 #dynamically allocate memory
-    syscall
+        addiu   $2,$fp,56
+        move    $5,$2
+        li      $v0, 8
+        la      $a0, buffer
+        la      $a1, 31
+        syscall
 
-    move $s7, $v0 # s7 = ROOT
-    move $a0, $s7
-    la $a1, blueDevil
-    jal strcpy # blueDevil = head of tree
+        nop
+        #sw      $0,24($fp)
+        #sw      $0,28($fp)
+
+while_loop:
+        addiu   $3,$fp,56
+        move    $4,$3
+        la $a0, buffer
+        la $a1, done1  #load done
+        jal strcmp
+        beq $v0, $zero, exitdone #exit code if patient = DONE
+        nop
+
+        li      $v0, 4 
+        la      $a0, infectorprompt
+        syscall
+
+        addiu   $2,$fp,128
+        move    $5,$2
+        li      $v0, 8
+        la      $a0, buffer2
+        la      $a1, 31
+        syscall
+        nop
+
+        li      $a0, 38 #allocate space for patient
+        li      $v0, 9 #dynamically allocate memory
+        syscall
+
+        sw      $2,40($fp)
+
+        li      $a0, 38 #allocate space for source
+        li      $v0, 9 #dynamically allocate memory
+        syscall
+
+        sw      $2,44($fp)
+        sw      $0,32($fp)
+    copy_patient: #copy patient name into  nodes
+        lw      $2,32($fp)
+        addiu   $3,$fp,56
+        addu    $2,$3,$2
+        lb      $2,0($2)
+        nop
+        beq     $2,$0, donecopying #if patient charachter is empty, finish copying
+        nop
+
+        lw      $2,32($fp)
+        addiu   $3,$fp,56
+        addu    $2,$3,$2
+        lb      $3,0($2)
+        li      $2,10                 # 0xa
+        beq     $3,$2,donecopying 
+        nop
+
+        lw      $3,40($fp)
+        lw      $2,32($fp)
+        nop
+        addu    $2,$3,$2
+        lw      $3,32($fp)
+        addiu   $4,$fp,56
+        addu    $3,$4,$3
+        lb      $3,0($3)
+        nop
+        sb      $3,0($2)
+        lw      $2,32($fp)
+        nop
+        addiu   $2,$2,1
+        sw      $2,32($fp)
+        b       copy_patient
+        nop
+
+donecopying :
+        lw      $3,40($fp)
+        lw      $2,32($fp)
+        nop
+        addu    $2,$3,$2
+        sb      $0,0($2)
+        sw      $0,36($fp)
+copy_source:
+        lw      $2,36($fp)
+        addiu   $3,$fp,128
+        addu    $2,$3,$2
+        lb      $2,0($2)
+        nop
+        beq     $2,$0,donecopy2
+        nop
+
+        lw      $2,36($fp)
+        addiu   $3,$fp,128
+        addu    $2,$3,$2
+        lb      $3,0($2)
+        li      $2,10                 # 0xa
+        beq     $3,$2,donecopy2
+        nop
+
+        lw      $3,44($fp)
+        lw      $2,36($fp)
+        nop
+        addu    $2,$3,$2
+        lw      $3,36($fp)
+        addiu   $4,$fp,128
+        addu    $3,$4,$3
+        lb      $3,0($3)
+        nop
+        sb      $3,0($2)
+        lw      $2,36($fp)
+        nop
+        addiu   $2,$2,1
+        sw      $2,36($fp)
+        b       copy_source
+        nop
+
+donecopy2:
+        lw      $3,44($fp)
+        lw      $2,36($fp)
+        nop
+        addu    $2,$3,$2
+        sb      $0,0($2)
+        li      $v0, 4 
+        la      $a0, patientprompt
+        syscall
+        nop
+
+        addiu   $2,$fp,56
+        move    $5,$2
+        li      $v0, 8
+        la      $a0, buffer
+        la      $a1, 31
+        syscall
+        nop
+
+        lw      $2,28($fp)
+        nop
+        bne     $2,$0,insertnode 
+        nop
+
+        lw      $2,44($fp)
+        nop
+        sw      $2,28($fp)
+        lw      $6,44($fp)
+        lw      $5,40($fp)
+        lw      $4,28($fp)
+        jal     insertSort
+        nop
+
+        sw      $2,28($fp)
+        b       jumploop
+        nop
+
+insertnode :
+        lw      $6,44($fp)
+        lw      $5,40($fp)
+        lw      $4,28($fp)
+        jal     insertSort
+
+        nop
+
+        sw      $2,28($fp)
+jumploop:
+        lw      $2,24($fp)
+        nop
+        addiu   $2,$2,1
+        sw      $2,24($fp)
+        b       while_loop
+        nop
+
+exitdone:
+        sw      $0,48($fp)
+        li      $2,1                        
+        sw      $2,52($fp)
+        lw      $6,52($fp)
+        lw      $5,48($fp)
+        lw      $4,28($fp)
+        jal     printTree
+        nop
+
+        sw      $2,48($fp)
+        move    $2,$0
+return_done:
+        move    $sp,$fp
+        lw      $31,204($sp)
+        lw      $fp,200($sp)
+        addiu   $sp,$sp,208
+        j       $31
+        nop
+
+printTree:
+        addiu   $sp,$sp,-144
+        sw      $31,140($sp)
+        sw      $fp,136($sp)
+        move    $fp,$sp
+        sw      $4,144($fp)
+        sw      $5,148($fp)
+        sw      $6,152($fp)
+        lw      $2,144($fp)
+        nop
+        bne     $2,$0,$L16
+        nop
+
+        lw      $2,148($fp)
+        b       $L17
+        nop
+
+$L16: #case where root has no right of left children 
+        lw      $2,144($fp)
+        nop
+        lw      $2,32($2)
+        nop
+        bne     $2,$0,$L18
+        nop
+
+        lw      $2,144($fp) 
+        nop
+        move    $4,$2 #we take the root string
+
+        jal     newNode #we create a new node ( it also copies the string to the node) 
+        nop
+
+        sw      $2,24($fp)
+        addiu   $2,$fp,148
+        lw      $5,24($fp)
+        move    $4,$2   
 
 
-while:
-     #print prompt for patient
-    li $v0, 4 
-    la $a0, patientPrompt
-    syscall
 
-    #read patient name
-    li $v0, 8
-    la $a0, buffer
-    la $a1, 31
-    syscall
+        jal     LLsort #insert new node to the linked list alphabetically 
+        nop
 
-    move $s0, $a0 # s0 = patient name
+        b       $L19
+        nop
 
-    la $a0, buffer
-    la $a1, done  #load done
-    jal compare
-    beq $v0, $zero, next
+$L18: #case where root has only a left child
+        lw      $2,144($fp)
+        nop
+        lw      $2,36($2)
+        nop
+        bne     $2,$0,$L20
+        nop
 
-    #print prompt for source
-    li $v0, 4
-    la $a0, sourcePrompt
-    syscall 
+        lw      $3,144($fp)
+        addiu   $2,$fp,36
+        move    $5,$3
+        move    $4,$2    
+        jal     strcpy   #we take the root string
+        nop
 
-    #read source name
-    li $v0, 8
-    la $a0, buffer
-    la $a1, 31
-    syscall
+        addiu   $2,$fp,36
+        move    $4,$2
+        jal     strlen
+        nop
 
-    move $s1, $a0 # s1 = source name
-    #CREATE NODE
-    li $a0, 38 #allocate space for 30 char
-    li $v0, 9 #dynamically allocate memory
-    syscall
-    move $a0, $v0 #a0 = node
-    move $a1, $s0 #a1 = patient name
-    jal strcpy
+        move    $3,$2
+        addiu   $2,$fp,36
+        addu    $2,$2,$3
+        li      $3,32                #we take the left child string
+        sb      $3,0($2)
+        sb      $0,1($2)
+        lw      $2,144($fp)
+        nop
+        lw      $2,32($2)
+        nop
+        move    $3,$2
+        addiu   $2,$fp,36
+        move    $5,$3
+        move    $4,$2
 
-    move $s2, $v0 # moves node to s2
-    li $t1, 0
-    #sw $t1, 30($s2) # set left node to null
-    #sw $t1, 34($s2) # set right node to null -> not storing name, storing address of name
+        jal     strcat             # put root and left child name together in one line (example :"BlueuDevil Badger")
+        nop
 
-    move $a0, $s7 #root
-    move $a1, $s2 #address of node with patient name
-    move $a2, $s1 #source name
-    jal insertSort
-    
+        addiu   $2,$fp,36
+        move    $4,$2
 
-    j while
+        jal     newNode             #creat new node
+        nop
 
-next:
-    lw $ra, 0($sp)
-    addi $sp, $sp, 4
-    jr $ra
+        sw      $2,28($fp)
+        addiu   $2,$fp,148
+        lw      $5,28($fp)
+        move    $4,$2
 
-compare:
-    add $t1, $a0, $zero #buffer -> t1
-    add $t2, $a1, $zero #done -> t2
+        jal     LLsort              #insert and sort 
+        nop
 
-loop:
-    lb $t3, ($t1) #buffer
-    lb $t4, ($t2) #done
-    beqz $t3, checkt4
-    beqz $t4, mismatch
-    bne $t3, $t4, mismatch
-    addi $t1, $t1, 1 # move 1 letter forward in buffer
-    addi $t2, $t2, 1 # move 1 letter forward in done
-    j loop
+        b       $L19
+        nop
 
-mismatch:
-    addi $v0, $zero, 1
-    j end
+$L20: #case where root has a left child  and right child
+        lw      $3,144($fp)
+        addiu   $2,$fp,36
+        move    $5,$3
+        move    $4,$2
+        jal     strcpy
+        nop
 
-checkt4:
-    bnez $t4, mismatch # not done
-    add $v0, $zero, $zero # yes done
+        addiu   $2,$fp,36
+        move    $4,$2
+        jal     strlen
+        nop
 
-end:
-    jr $ra
+        move    $3,$2
+        addiu   $2,$fp,36
+        addu    $2,$2,$3
+        li      $3,32                
+        sb      $3,0($2)
+        sb      $0,1($2)
+        lw      $2,144($fp)
+        nop
+        lw      $2,32($2)
+        nop
+        move    $3,$2
+        addiu   $2,$fp,36
+        move    $5,$3
+        move    $4,$2
+        jal     strcat
+        nop
 
-strcpy:
-	lb $t0, 0($a1)
-	beq $t0, $zero, done_copying
-	sb $t0, 0($a0)
-	addi $a0, $a0, 1
-	addi $a1, $a1, 1
-	j strcpy
+        addiu   $2,$fp,36
+        move    $4,$2
+        jal     strlen
+        nop
 
-done_copying:
-	jr $ra
+        move    $3,$2
+        addiu   $2,$fp,36
+        addu    $2,$2,$3
+        li      $3,32                 # 0x20
+        sb      $3,0($2)
+        sb      $0,1($2)
+        lw      $2,144($fp)
+        nop
+        lw      $2,36($2)
+        nop
+        move    $3,$2
+        addiu   $2,$fp,36
+        move    $5,$3
+        move    $4,$2
+        jal     strcat
+        nop
 
-insertSort: # a0 = root, a1= patient name address, a2 = source name
-    subu $sp, $sp, 20 #want addresses of nodes to know where to add new nodes
-    sw $a0, 0($sp) #load tree root address
-    sw $a1, 4($sp)
-    sw $ra, 8($sp) #loads return address
-    
-    #lw $t1, 30($a0) #left child
-    #sw $t1, 12($sp)
+        addiu   $2,$fp,36
+        move    $4,$2
+        jal     newNode
+        nop
 
-    #lw $t2, 34($a0) #right child
-    #sw $t2, 16($sp)
+        sw      $2,32($fp)
+        addiu   $2,$fp,148
+        lw      $5,32($fp)
+        move    $4,$2
 
-    move $a1, $a2 # move a2 to a1 because compare takes arguments a0 and a1, a2 is actually the source
-    jal compare
-    bnez $v0, notFound
-    
-    lw $a1, 4($sp) # patient name add.
-    lw $a0, 0($sp) # root
-    lw $t1, 30($a0) # left child
-    lw $t2, 34($a0) #right child
+        jal     LLsort
+        nop
 
-    bnez $t1, leftFull
-    sw $a1, 30($a0) # set empty left to patient name -> store a1 in 30(a0)
-    lw $ra, 8($sp)
-    addi $sp, $sp, 20
-    jr $ra
+$L19:
+        lw      $2,144($fp)
+        nop
+        lw      $2,32($2)
+        lw      $3,148($fp)
+        move    $6,$0
+        move    $5,$3
+        move    $4,$2
+        jal     printTree        #call print tree for left child 
+        nop
+
+        sw      $2,148($fp)
+        lw      $2,144($fp)
+        nop
+        lw      $2,36($2)
+        lw      $3,148($fp)
+        move    $6,$0
+        move    $5,$3
+        move    $4,$2
+        jal     printTree     #call print tree for right child 
+        nop
+
+        sw      $2,148($fp)
+        lw      $3,152($fp)
+        li      $2,1                        #
+        bne     $3,$2,$L21
+        nop
+
+        lw      $2,148($fp)
+        nop
+        move    $4,$2
+        jal     printList       #if at the end, print the linked list alphabetically 
+        nop
+
+$L21:
+        lw      $2,148($fp)
+$L17:
+        move    $sp,$fp         #go back to return address
+        lw      $31,140($sp)
+        lw      $fp,136($sp)
+        addiu   $sp,$sp,144
+        j       $31
+        nop
+
+#---------------------END of PRINT TREE --------------------------------------------
 
 
-notFound: #checks if child is empty, going down left side of tree
-    lw $a0, 30($a0)
-    beqz $a0, childNull
-    jal insertSort
-    lw $a0, 34($a0)
-    beqz $a0, childNull
-    jal insertSort
+#---------------------START of LLsort --------------------------------------------
+LLsort:
+        addiu   $sp,$sp,-40
+        sw      $31,36($sp)
+        sw      $fp,32($sp)
+        move    $fp,$sp
+        sw      $4,40($fp)
+        sw      $5,44($fp)
+        lw      $2,40($fp)
+        nop
+        lw      $2,0($2)
+        nop
+        beq     $2,$0,$L23
+        nop
 
-childNull:
-    lw $ra, 8($sp)
-    addi $sp, $sp, 20
-    jr $ra
+        lw      $2,40($fp)
+        nop
+        lw      $2,0($2)
+        nop
+        move    $3,$2
+        lw      $2,44($fp)
+        nop
+        move    $5,$2
+        move    $4,$3
+        jal     strcmp
+        nop
 
-leftFull:
-    sw $a1, 34($a0)
-    move $a0, $a1 # move in order to call compare
-    move $a1, $a2
-    jal strcmp
+        bltz    $2,$L24
+        nop
 
-    bgtz $v0, switch
+$L23:
+        lw      $2,40($fp)          #check #if new node is alphabetically smaller
+        nop
+        lw      $3,0($2)
+        lw      $2,44($fp)
+        nop
+        sw      $3,100($2)
+        lw      $2,40($fp)
+        lw      $3,44($fp)
+        nop
+        sw      $3,0($2)
+        b       $L25 #jump to insert before root
+        nop
 
-    lw $a1, 4($sp)
-    lw $a0, 0($sp) # load root
-    lw $a0, 34($a0) # right child
-    jal insertSort
-    # set found->right = $v0
+$L24:
+        lw      $2,40($fp)    
+        nop
+        lw      $2,0($2)
+        nop
+        sw      $2,24($fp)
+$L27: #loop to check where to put new node on the right side of the linked list (bigger alphabetically) 
+        lw      $2,24($fp)   
+        nop
+        lw      $2,100($2)
+        nop
+        beq     $2,$0,$L26
+        nop
 
-    lw $ra, 8($sp)
-    addi $sp, $sp, 20
-    jr $ra
+        lw      $2,24($fp)
+        nop
+        lw      $2,100($2)
+        nop
+        move    $3,$2
+        lw      $2,44($fp)
+        nop
+        move    $5,$2
+        move    $4,$3
+        jal     strcmp
+        nop
 
-switch:
-    li $a0, 38 #allocate space for 30 char
-    li $v0, 9 #dynamically allocate memory
-    syscall
-    move $a0, $v0 #a0 = node
+        bgez    $2,$L26 #if new node is smaller than next node, insert here
+        nop
 
-    lw $t1, 12($sp) # left child
-    lw $t2, 16($sp) #right child
+        lw      $2,24($fp)
+        nop
+        lw      $2,100($2)
+        nop
+        sw      $2,24($fp)
+        b       $L27   #jump back to the loop if not right spot ( new node still too big) 
+        nop
 
-    move $a0, $t1 # swap = found->left : temp variables
-    move $t2, $a0 # found->right = swap
-    move $t1, $a1 # found->left = patient name
+$L26: #if new node is smaller than next node, insert here
+        lw      $2,24($fp)
+        nop
+        lw      $3,100($2)
+        lw      $2,44($fp)
+        nop
+        sw      $3,100($2)
+        lw      $2,24($fp)
+        lw      $3,44($fp)
+        nop
+        sw      $3,100($2)
+$L25: #insert before root
+        nop
+        move    $sp,$fp
+        lw      $31,36($sp)
+        lw      $fp,32($sp)
+        addiu   $sp,$sp,40
+        j       $31
+        nop
+#---------------------END of LL sort --------------------------------------------
 
-    move $a1, $s0 #a1 = patient name
-    jal strcpy
+printList:
+        addiu   $sp,$sp,-40
+        sw      $31,36($sp)
+        sw      $fp,32($sp)
+        move    $fp,$sp
+        sw      $4,40($fp)
+        lw      $2,40($fp)
+        nop
+        sw      $2,24($fp)
+$L30: #loop to print each line 
+        lw      $2,24($fp)
+        nop
+        beq     $2,$0,$L31 #if new line == zero, break
+        nop
+        lw      $2,24($fp) #this right now returns empty string ERROR
+        la      $a0, 24($fp)
+        li      $v0, 4     #print the linked list line 
+        syscall
+        nop
+        move    $5,$2
+        li      $v0, 4  #print new line 
+        la      $a0, newline
+        syscall
+        nop
+        lw      $2,24($fp)
+        nop
+        lw      $2,100($2)
+        nop
+        sw      $2,24($fp)
+        b       $L30 #jump back to loop 
+        nop
 
-    add $s2, $zero, $v0 # moves node to s2
-    sw $zero, 30($s2) # set left node to null
-    sw $zero, 34($s2) # set right node to null -> not storing name, storing address of name
+$L31: #exit print list 
+        nop
+        move    $sp,$fp
+        lw      $31,36($sp)
+        lw      $fp,32($sp)
+        addiu   $sp,$sp,40
+        j       $31 #jr ra
+        nop
+
+#---------------------END of Print List --------------------------------------------
+
+#---------------------start for InsertSort --------------------------------------------
+insertSort:
+        addiu   $sp,$sp,-48
+        sw      $31,44($sp)
+        sw      $fp,40($sp)
+        move    $fp,$sp
+        sw      $4,48($fp)
+        sw      $5,52($fp)
+        sw      $6,56($fp)
+        lw      $5,56($fp)
+        lw      $4,48($fp)
+        jal     finder    #jump to find the right source or whether it is in the tree already 
+        nop
+
+        sw      $2,24($fp)
+        lw      $2,24($fp)
+        nop
+        bne     $2,$0,$L33
+        nop
+
+        lw      $2,52($fp)
+        nop
+        sw      $2,48($fp)
+        lw      $2,48($fp)
+        b       $L34
+        nop
+
+$L33: # call insert Sort on left child if child is null (add left)
+        lw      $2,24($fp)
+        nop
+        lw      $2,32($2)
+        nop
+        bne     $2,$0,$L35
+        nop
+
+        lw      $2,24($fp)
+        nop
+        lw      $2,32($2)
+        lw      $6,56($fp)
+        lw      $5,52($fp)
+        move    $4,$2
+        jal     insertSort
+        nop
+
+        move    $3,$2
+        lw      $2,24($fp)
+        nop
+        sw      $3,32($2)
+        b       $L36
+        nop
+
+$L35: # if left child is full, compare to new node
+        lw      $2,24($fp)
+        nop
+        lw      $2,32($2)
+        nop
+        move    $3,$2
+        lw      $2,52($fp)
+        nop
+        move    $5,$2
+        move    $4,$3
+        jal     strcmp
+        nop
+
+        sw      $2,28($fp)
+        lw      $2,28($fp)
+        nop
+        bgez    $2,$L37 # if new node is smaller than left, insert in left (switch)
+        nop
+
+        lw      $2,24($fp)
+        nop
+        lw      $2,36($2)
+        lw      $6,56($fp)
+        lw      $5,52($fp)
+        move    $4,$2
+        jal     insertSort # insert in right (bigger)
+        nop
+
+        move    $3,$2
+        lw      $2,24($fp)
+        nop
+        sw      $3,36($2)
+$L37: # if new node is smaller than left, insert in left (switch)
+        lw      $2,28($fp)
+        nop
+        blez    $2,$L36
+        nop
+
+        sw      $0,32($fp)
+        lw      $2,24($fp)
+        nop
+        lw      $2,32($2)
+        nop
+        sw      $2,32($fp)
+        lw      $2,24($fp)
+        lw      $3,32($fp)
+        nop
+        sw      $3,36($2)
+        lw      $2,24($fp)
+        lw      $3,52($fp)
+        nop
+        sw      $3,32($2)
+$L36:
+        lw      $2,48($fp)
+$L34: # return
+        move    $sp,$fp
+        lw      $31,44($sp)
+        lw      $fp,40($sp)
+        addiu   $sp,$sp,48
+        j       $31
+        nop
+
+finder: #locating in tree
+        addiu   $sp,$sp,-40
+        sw      $31,36($sp)
+        sw      $fp,32($sp)
+        move    $fp,$sp
+        sw      $4,40($fp)
+        sw      $5,44($fp)
+        sw      $0,24($fp)
+        lw      $2,40($fp)
+        nop
+        bne     $2,$0,$L39
+        nop
+
+        move    $2,$0
+        b       $L40
+        nop
+
+$L39:
+        lw      $2,40($fp)
+        lw      $3,44($fp)
+        nop
+        move    $5,$3
+        move    $4,$2
+        jal     strcmp # compares name of root and source
+        nop
+
+        bne     $2,$0,$L41 # if not equal, jump to finder on children
+        nop
+
+        lw      $2,40($fp) # return root
+        b       $L40
+        nop
+
+$L41: # calling finder on children of root
+        lw      $2,40($fp)
+        nop
+        lw      $2,32($2)
+        lw      $5,44($fp)
+        move    $4,$2
+        jal     finder # calls on left
+        nop
+
+        sw      $2,24($fp)
+        lw      $2,24($fp)
+        nop
+        beq     $2,$0,$L42
+        nop
+
+        lw      $2,24($fp)
+        b       $L40
+        nop
+
+$L42:
+        lw      $2,40($fp)
+        nop
+        lw      $2,36($2)
+        lw      $5,44($fp)
+        move    $4,$2
+        jal     finder # calls finder on right
+        nop
+
+        sw      $2,24($fp)
+        lw      $2,24($fp)
+        nop
+        beq     $2,$0,$L43
+        nop
+
+        lw      $2,24($fp)
+        b       $L40
+        nop
+
+$L43:
+        move    $2,$0
+$L40:
+        move    $sp,$fp
+        lw      $31,36($sp)
+        lw      $fp,32($sp)
+        addiu   $sp,$sp,40
+        j       $31
+        nop
+
+
+
 
 strcmp:
 	lb $t0, 0($a0)
@@ -199,194 +787,82 @@ strcmp:
 	jr $ra
 		
 
-done_with_strcmp_loop:
+	done_with_strcmp_loop:
 	sub $v0, $t0, $t1
 	jr $ra
 
-print:
-    addi $sp, $sp, -8
-    sw $ra, 0($sp)
-    sw $a0, 4($sp)
 
-    beq $a0, $zero, exitPrint # if root is null
+    strcpy:
+	lb $t0, 0($a1)
+	sb $t0, 0($a0)
+        beq $t0, $zero, done_copying
+	addi $a0, $a0, 1
+	addi $a1, $a1, 1
+	j strcpy
 
-printLoop:
-    li $v0, 4
-    syscall
+	done_copying:
+	jr $ra
 
-    la $a0, space
-    li $v0, 4
-    syscall
 
-    lw $a0, 4($sp) # reload root
-    li $v0, 4
-    la $a0, 30($a0) # left
-    syscall
+    strlen:
+        li      $v0, 0                  # len = 0
 
-    la $a0, space
-    li $v0, 4
-    syscall
+    while:  lb      $t0, ($a0)              # get char
+        beqz    $t0, wh_end 
+        subu $t1, $t0, 10
+        beqz $t1, wh_end            # if(char == '\0') --> end while
+        addi    $v0, $v0, 1             # len++
+        addiu   $a0, $a0, 1             # *s++
+        j       while
+    wh_end:
+        jr      $ra
 
-    lw $a0, 4($sp) # reload root
-    li $v0, 4
-    la $a0, 34($a0)
-    syscall
+# Advance #a0 until it contains address of \0 byte
+strcat:
+    or $t0, $a0, $zero # Source
+    or $t1, $a1, $zero # Destination
 
-    lw $a0, 4($sp)
-    la $a0, 30($a0) # call again on left
-    jal print
+loop:
+    lb $t2, 0($t0)
+    beq $t2, $zero, end
+    addiu $t0, $t0, 1
+    sb $t2, 0($t1)
+    addiu $t1, $t1, 1
+    b loop
+    nop
 
-    lw $a0, 4($sp)
-    la $a0, 34($a0) # call again on right
-    jal print
-
-exitPrint:
-    lw $a0, 4($sp)
-    lw $ra, 0($sp)
-    addi $sp, $sp, 8
+end:
+    or $v0, $t1, $zero # Return last position on result buffer
     jr $ra
-
-printTree: # root of tree and head of linked list, recursive
-    subu $sp, $sp, 12
-    sw $ra, 0($sp)
-    sw $s0, 4($sp) # root (a0)
-    sw $s1, 8($sp) # head of linked list (a1)
-    move $s0, $a0
-    move $s1, $a1
-    beqz $a0, rootNull
-    # check if left child is null --> if so print just root
-    move $t1, 30($s0)
-    move $a0, $s0
-    move $a1, $s1
-    beqz $t1, leftNull
-
-    move $t1, 34($s0)
-    move $a0, $s0
-    move $a1, $s1
-    beqz $t1, rightNull
-
-    j familyFull
+    nop
 
 
-leftNull: # malloc space for new node and add to linked list
-    move $t1, $a0 #save a0
-    move $t2, $a1
-    li $a0, 100 #allocate space for 3 max 30 char names
-    li $v0, 9 #dynamically allocate memory
-    syscall
-    move $a0, $v0 # moving nodes to be called by listSort
-    move $a1, $t1
-    jal strcpy
-    move $a0, $v0
-    move $a1, $t2
-    jal listSort
-    # close stack ?
+newNode:
+        addiu   $sp,$sp,-40
+        sw      $31,36($sp)
+        sw      $fp,32($sp)
+        move    $fp,$sp
+        sw      $4,40($fp)
+        li      $4,104                  # 0x68
+        li      $a0, 104 #allocate space for ROOT
+        li      $v0, 9 #dynamically allocate memory
+        syscall
+        nop
 
-    j printTreeCont
+        sw      $2,24($fp)
+        lw      $2,24($fp)
+        lw      $5,40($fp)
+        move    $4,$2
+        jal     strcpy
+        nop
 
-rightNull:
-    move $t0, $a0 # root
-    move $t1, 30($a0) # left child
-    move $t3, $a1
-
-    la $a0, family #buffer for copying
-    move $a1, $t0 #root
-    jal strcpy
-
-    # TO DO: copy both names together
-    li $a0, 100 #allocate space for 3 max 30 char names
-    li $v0, 9 #dynamically allocate memory
-    syscall
-    move $a0, $v0 # allocated space/node
-    move $a1, $t4 # t4 should be family string
-    jal strcpy
-    
-    move $a0, $v0
-    move $a1, $t3
-    jal listSort
-
-    j printTreeCont
-
-familyFull:
-    # TO DO: copy both names together
-    li $a0, 100 #allocate space for 3 max 30 char names
-    li $v0, 9 #dynamically allocate memory
-    syscall
-    move $a0, $v0 # allocated space/node
-    move $a1, $t4 # t4 should be family string
-    jal strcpy
-    
-    move $a0, $v0
-    move $a1, $s1
-    jal listSort
-
-printTreeCont:
-    move $a0, 30($s0) # get address of left child
-    move $a1, $s1 # head of linked list -> a1
-    jal printTree
-
-    move $a1, $v0 # returned from printTree
-    move $a0, 34($s0) # address of right child - might need to save more stuff
-    jal printTree # printing right child subtree
-
-    lw $ra, 0($sp)
-    lw $s0, 4($sp)
-    lw $s1, 8($sp)
-    addi $sp, $sp, 12
-    move $v0, $a1 # might have to change a1 to s1
-    jr $ra # return head of linked list
-
-rootNull:
-    lw $ra, 0($sp)
-    lw $s0, 4($sp)
-    lw $s1, 8($sp)
-    addi $sp, $sp, 12
-    move $v0, $a1
-    jr $ra
-
-# TO DO: flag of when to print
-
-listSort: # takes head of list (a1) and new node (a0)
-    move $t1, $a1 # head
-    move $t0, $a0 # new node
-    beqz $t1, headNull
-    move $a0, $t1
-    move $a1, $t0
-    jal strcmp
-    bgez $v0, headNull
-    move $t3, $t1 # move head to t3
-
-loopListSort:
-    move $t4, 100($t3)
-    beqz $t4, exitLoop
-    move $a0, 100($t4) # current->next
-    move $a1, $t0 # new node being compared
-    jal strcmp
-    bltz $v0, exitLoop
-    move $t3, 100($t3)
-    j loopListSort
-
-exitLoop:
-    move $t7, 100($t0) # new node->next
-    move $t4, 100($t3) # current->next
-    move $t7, $t4 # new node->next = current->next
-    move $t0, $t4 # current->next = new node
-    jr $ra
-
-headNull: # make new node head
-    move $t6, $a1 # moves head to temp
-    move $t5, 100($a0) # moves new node->next to head
-    move $t5, $t6 # new node->next = head
-    move $a1, $a0
-    jr $ra
-    
-
-
-.data
-patientPrompt: .asciiz "Enter patient name: "
-sourcePrompt: .asciiz "Enter source name: "
-buffer: .space 31
-done: .asciiz "DONE\n"
-blueDevil: .asciiz "bluedevil\n"
-space: .asciiz " "
-family: .space 90
+        lw      $2,24($fp)
+        nop
+        sw      $0,100($2) #new node next == null
+        lw      $2,24($fp)
+        move    $sp,$fp
+        lw      $31,36($sp)
+        lw      $fp,32($sp)
+        addiu   $sp,$sp,40
+        j       $31
+        nop
